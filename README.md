@@ -37,7 +37,7 @@ The file should have the following format:
       "cron": {
         "time": "11:59"
       },
-      "limit": 2
+      "limit": 1
     }
 
 ### Crontabs
@@ -68,7 +68,7 @@ You must first `npm install time` to use "timezone" specification.
 
 The optional "limit" allows you to specify how many jobs will run in parallel. Default is 1.
 
-      "limit": 2
+      "limit": 1
       
 ## Running
 
