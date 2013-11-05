@@ -15,13 +15,19 @@ There is a sample configuration file supplied in the package (`config.sample.jso
 The file should have the following format:
 
     {
-      "mongodb": {
+      "mongodb": [{
         "host": "localhost",
         "port": 27017,
         "username": false,
         "password": false,
         "db": "database_to_backup"
-      },
+      },{
+        "host": "localhost",
+        "port": 27017,
+        "username": false,
+        "password": false,
+        "db": "second_database_to_backup"
+      }],
       "s3": {
         "key": "your_s3_key",
         "secret": "your_s3_secret",
@@ -29,8 +35,9 @@ The file should have the following format:
         "destination": "/"
       },
       "cron": {
-        "time": "11:59",
-      }
+        "time": "11:59"
+      },
+      "limit": 2
     }
 
 ### Crontabs
@@ -57,6 +64,12 @@ of local timezone on the host machine.
 
 You must first `npm install time` to use "timezone" specification.
 
+### Limit
+
+The optional "limit" allows you to specify how many jobs will run in parallel. Default is 1.
+
+      "limit": 2
+      
 ## Running
 
 To start a long-running process with scheduled cron job:

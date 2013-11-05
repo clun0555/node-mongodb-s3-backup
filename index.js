@@ -221,28 +221,48 @@ function sendToS3(options, directory, target, callback) {
  * @param s3Config        s3 config [key, secret, bucket]
  * @param callback        callback(err)
  */
-function sync(mongodbConfig, s3Config, callback) {
+function sync(mongodbConfig, s3Config, limit, callback) {
   var tmpDir = path.join(require('os').tmpDir(), 'mongodb_s3_backup')
-    , backupDir = path.join(tmpDir, mongodbConfig.db)
-    , archiveName = getArchiveName(mongodbConfig.db)
+    , successful = 0
+    , errored = 0
+    , limit = limit || 1
     , async = require('async');
 
   callback = callback || function() { };
+    
+  if (Object.prototype.toString.call(mongodbConfig) !== '[object Array]') {
+    mongodbConfig = [mongodbConfig];
+  }
 
-  async.series([
-    async.apply(removeRF, backupDir),
-    async.apply(removeRF, path.join(tmpDir, archiveName)),
-    async.apply(mongoDump, mongodbConfig, tmpDir),
-    async.apply(compressDirectory, tmpDir, mongodbConfig.db, archiveName),
-    async.apply(sendToS3, s3Config, tmpDir, archiveName)
-  ], function(err) {
+  async.eachLimit(mongodbConfig, limit, function(config, done) {
+      var backupDir = path.join(tmpDir, config.db)
+        , archiveName = getArchiveName(config.db);
+
+      async.series([
+        async.apply(removeRF, backupDir),
+        async.apply(removeRF, path.join(tmpDir, archiveName)),
+        async.apply(mongoDump, config, tmpDir),
+        async.apply(compressDirectory, tmpDir, config.db, archiveName),
+        async.apply(sendToS3, s3Config, tmpDir, archiveName)
+      ], function(err) {
+        if(err) {
+          errored++;
+          log('Error while backing up ' + config.db, 'error');
+          log(err, 'error');
+        } else {
+          successful++;
+          log('Successfully backed up ' + config.db);
+        }
+        return done(err);
+      });
+  }, function(err) {
     if(err) {
-      log(err, 'error');
-    } else {
-      log('Successfully backed up ' + mongodbConfig.db);
+      log('Errors while backing up ' + errored + ' databases!', 'error');
     }
+    log('Successfully backed up ' + successful + ' databases!');
     return callback(err);
   });
+    
 }
 
 module.exports = { sync: sync, log: log };
